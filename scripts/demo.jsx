@@ -1,3 +1,5 @@
+/** @jsx React.DOM */
+
 var React = require('react');
 var ReactMaps = require('react-maps');
 
@@ -19,11 +21,12 @@ if ("geolocation" in navigator) {
 
   });
 } else {
-  React.renderComponent(
-    <ReactMaps.Map center={position} zoom={12} />,
-    document.getElementById('map')
-  );
 }
+
+React.renderComponent(
+  <ReactMaps.Map center={position} zoom={12} />,
+  document.getElementById('map')
+);
 
 
 

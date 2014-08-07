@@ -1,34 +1,12 @@
+/** @jsx React.DOM */
+
 var React = require('react');
 var Tolmey = require('tolmey');
+var ZoomControl = require('./controls/ZoomControl');
 
 var getTileURL = function(x, y, zoom) {
   return `//api.tiles.mapbox.com/v4/onefinestay.j5p58a57/${ zoom }/${ x }/${ y }@2x.png?access_token=pk.eyJ1Ijoib25lZmluZXN0YXkiLCJhIjoiWlpMeWR3ZyJ9.PljQ7mc2imXG3zrUms-HyQ`;
 };
-
-var ZoomControl = React.createClass({
-  propTypes: {
-    min: React.PropTypes.number.isRequired,
-    max: React.PropTypes.number.isRequired
-  },
-
-  handleZoomIn: function() {
-    this.props.onZoomIn();
-  },
-
-  handleZoomOut: function() {
-    this.props.onZoomOut();
-  },
-
-  render: function() {
-    return (
-      <div className="react-maps-zoom-control">
-        <a onClick={this.handleZoomIn}>In</a>
-        <a onClick={this.handleZoomOut}>Out</a>
-      </div>
-    );
-  }
-});
-
 
 
 var Map = React.createClass({
@@ -36,18 +14,25 @@ var Map = React.createClass({
     center: React.PropTypes.object.isRequired,
     zoom: React.PropTypes.number.isRequired,
   },
-  
+
+  getDefaultProps: function() {
+    return {
+      minZoom: 0,
+      maxZoom: 20
+    };
+  },
+
   getInitialState: function() {
     return {
       center: this.props.center,
       zoom: this.props.zoom
     };
   },
-  
+
   handleZoomIn: function() {
     this.setState({zoom: this.state.zoom + 1});
   },
-  
+
   handleZoomOut: function() {
     this.setState({zoom: this.state.zoom - 1});
   },
@@ -59,7 +44,6 @@ var Map = React.createClass({
     var zoom = this.state.zoom;
 
     var coords = converter.getMercatorFromGPS(lat, long, zoom);
-
 
     var url = getTileURL(coords.x, coords.y, zoom);
     var url2 = getTileURL(coords.x + 1, coords.y, zoom);
@@ -76,10 +60,9 @@ var Map = React.createClass({
       height: '512px'
     };
 
-
     return (
       <div style={divStyle}>
-        <ZoomControl onZoomIn={this.handleZoomIn} onZoomOut={this.handleZoomOut} />
+        <ZoomControl zoom={this.state.zoom} max={this.props.maxZoom} min={this.props.minZoom} onZoomIn={this.handleZoomIn} onZoomOut={this.handleZoomOut} />
         <img src={url} style={imgStyle} />
         <img src={url2} style={imgStyle} />
         <img src={url3} style={imgStyle} />

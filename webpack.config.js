@@ -1,27 +1,31 @@
 var webpack = require("webpack");
 
-
 module.exports = {
-  entry: './demo/js/demo.js',
+  entry: [
+    'webpack-dev-server/client?http://localhost:3000',
+    'webpack/hot/dev-server',
+    './scripts/demo'
+  ],
   output: {
-    filename: './demo/js/build/bundle.js'
+    path: __dirname,
+    filename: 'bundle.js',
+    publicPath: '/scripts/'
   },
   module: {
     loaders: [
-      { test: /\.js$/, loader: 'jsx-loader?harmony&insertPragma=React.DOM' } // loaders can take parameters as a querystring
+      { test: /\.jsx$/, loaders: [
+        'react-hot',
+        'jsx?harmony']
+      }
     ]
   },
   plugins: [
-      new webpack.DefinePlugin({
-        'process.env.NODE_ENV': JSON.stringify('development')
-    })
+    new webpack.HotModuleReplacementPlugin()
   ],
-
   resolve: {
-    // you can now require('file') instead of require('file.coffee')
-    extensions: ['', '.js', '.json'],
+    extensions: ['', '.js', '.jsx'],
     alias: {
-      'react-maps': '../../lib/index'
+      'react-maps': '../lib/index'
     }
   }
 };
