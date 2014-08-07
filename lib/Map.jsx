@@ -9,17 +9,79 @@ var Tolmey = require('tolmey');
 var ZoomControl = require('./controls/ZoomControl');
 var _ = require('underscore');
 
-var getTileURL = function(x, y, zoom) {
-  return `//api.tiles.mapbox.com/v4/onefinestay.j5p58a57/${ zoom }/${ x }/${ y }@2x.png?access_token=pk.eyJ1Ijoib25lZmluZXN0YXkiLCJhIjoiWlpMeWR3ZyJ9.PljQ7mc2imXG3zrUms-HyQ`;
-};
 
+var TileCanvas = React.createClass({
 
-var getContainerOffset = function(width, height){
-  return {
-    top: Math.floor((height - TILE_DIM * 3) / 2), // the canvas is 3x3 tiles
-    left: Math.floor((width - TILE_DIM * 3) / 2)
+  getTileURL: function(x, y, zoom) {
+    return `//api.tiles.mapbox.com/v4/onefinestay.j5p58a57/${ zoom }/${ x }/${ y }@2x.png?access_token=pk.eyJ1Ijoib25lZmluZXN0YXkiLCJhIjoiWlpMeWR3ZyJ9.PljQ7mc2imXG3zrUms-HyQ`;
+  },
+
+  getCanvasOffset: function(){
+    return {
+        top: Math.floor((this.props.height - constants.TILE_DIM * this.getCanvasDimension(this.props.height)) / 2),
+        left: Math.floor((this.props.width - constants.TILE_DIM * this.getCanvasDimension(this.props.width)) / 2)
+      }
+  },
+
+  getCanvasDimension: function(lenght){
+    var dim = Math.ceil(lenght / constants.TILE_DIM);
+    return dim % 2 == 0 ? dim + 1 : dim;
+  },
+
+  getTileUrls: function(){
+    var dimX = this.getCanvasDimension(this.props.width);
+    var dimY = this.getCanvasDimension(this.props.height);
+    var centerX = Math.floor(dimX/2);
+    var centerY = Math.floor(dimY/2);
+
+    var urls = [];
+    var x;
+    var y;
+    var c = 0
+
+    for (indexY = 0; indexY < dimY; indexY++) {
+      for (indexX = 0; indexX < dimX; indexX++) {
+        x = this.props.coords.x + indexX - centerX;
+        y = this.props.coords.y + indexY - centerY;
+        urls.push({
+          x: x,
+          y: y,
+          url: this.getTileURL(x, y, this.props.zoom)
+        });
+
+      }
+    }
+    return urls;
+  },
+
+  render: function(){
+    var offsets = this.getCanvasOffset();
+
+    var canvasStyle = {
+      marginTop: String(offsets.top) + 'px',
+      marginLeft: String(offsets.left) + 'px',
+      width: String(constants.TILE_DIM * this.getCanvasDimension(this.props.width)) + 'px',
+      height: String(constants.TILE_DIM * this.getCanvasDimension(this.props.height)) + 'px'
+    };
+
+    var imgStyle = {
+      width: String(constants.TILE_DIM) + 'px',
+      height: String(constants.TILE_DIM) + 'px'
+    };
+
+    var tileUrls = this.getTileUrls();
+
+    var tileImages = _.map(tileUrls, function(tileUrl){
+      return <img key={String(tileUrl.x) + '-' + String(tileUrl.y)} src={tileUrl.url} style={imgStyle} />
+    })
+
+    return (
+      <div className="canvas" style={canvasStyle}>
+        {tileImages}
+      </div>
+    );
   }
-}
+});
 
 
 var Map = React.createClass({
@@ -55,36 +117,10 @@ var Map = React.createClass({
     var lat = this.state.center.lat;
     var long = this.state.center.lng;
     var zoom = this.state.zoom;
-
     var coords = converter.getMercatorFromGPS(lat, long, zoom);
-
-    var url = getTileURL(coords.x, coords.y, zoom);
-
-    var urls = [
-      getTileURL(coords.x - 1, coords.y - 1, zoom),   // NW
-      getTileURL(coords.x, coords.y - 1, zoom),       // N
-      getTileURL(coords.x + 1, coords.y - 1, zoom),   // NE
-      getTileURL(coords.x - 1, coords.y, zoom),       // W
-      getTileURL(coords.x, coords.y, zoom),           // CENTER
-      getTileURL(coords.x + 1, coords.y, zoom),       // E
-      getTileURL(coords.x - 1, coords.y + 1, zoom),   // SW
-      getTileURL(coords.x, coords.y + 1, zoom),       // S
-      getTileURL(coords.x + 1, coords.y + 1, zoom)    // SE
-    ];
-
-    var imgStyle = {
-      width: String(TILE_DIM) + 'px',
-      height: String(TILE_DIM) + 'px'
-    };
-    var tileImages = _.map(urls, function(url){
-      return <img src={url} style={imgStyle} />
-    })
 
     var divHeight = 1000;
     var divWidth = 1000;
-
-
-    var offsets = getContainerOffset(divWidth, divHeight);
 
     var divStyle = {
       width: String(divWidth) + 'px',
@@ -92,12 +128,6 @@ var Map = React.createClass({
       overflow: 'hidden'
     };
 
-    var canvasStyle = {
-      marginTop: String(offsets.top) + 'px',
-      marginLeft: String(offsets.left) + 'px',
-      width: String(TILE_DIM * 3) + 'px',
-      height: String(TILE_DIM * 3) + 'px'
-    };
 
     return (
       <div>
@@ -105,9 +135,7 @@ var Map = React.createClass({
           <ZoomControl zoom={this.state.zoom} max={this.props.maxZoom} min={this.props.minZoom} onZoomIn={this.handleZoomIn} onZoomOut={this.handleZoomOut} />
         </div>
         <div className="visor" style={divStyle}>
-          <div className="canvas" style={canvasStyle}>
-            {tileImages}
-          </div>
+          <TileCanvas width={divWidth} height={divHeight} coords={coords} zoom={zoom} />
         </div>
       </div>
     );
