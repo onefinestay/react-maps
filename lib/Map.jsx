@@ -1,6 +1,7 @@
 /** @jsx React.DOM */
 
 var constants = require('./constants');
+var SphericalMercator = require('sphericalmercator');
 
 var TILE_DIM = constants.TILE_DIM;
 
@@ -9,8 +10,12 @@ var Tolmey = require('tolmey');
 var ZoomControl = require('./controls/ZoomControl');
 var _ = require('underscore');
 
+var mercator = new SphericalMercator({
+    size: TILE_DIM
+});
 
-var TileCanvas = React.createClass({
+
+var MapCanvas = React.createClass({
 
   getTileURL: function(x, y, zoom) {
     return `//api.tiles.mapbox.com/v4/onefinestay.j5p58a57/${ zoom }/${ x }/${ y }@2x.png?access_token=pk.eyJ1Ijoib25lZmluZXN0YXkiLCJhIjoiWlpMeWR3ZyJ9.PljQ7mc2imXG3zrUms-HyQ`;
@@ -57,11 +62,15 @@ var TileCanvas = React.createClass({
   render: function(){
     var offsets = this.getCanvasOffset();
 
+    var offsetX = offsets.left + this.props.offsetX;
+    var offsetY = offsets.top + this.props.offsetY;
+
     var canvasStyle = {
-      marginTop: String(offsets.top) + 'px',
-      marginLeft: String(offsets.left) + 'px',
+      marginTop: offsetY + 'px',
+      marginLeft: offsetX + 'px',
       width: String(constants.TILE_DIM * this.getCanvasDimension(this.props.width)) + 'px',
-      height: String(constants.TILE_DIM * this.getCanvasDimension(this.props.height)) + 'px'
+      height: String(constants.TILE_DIM * this.getCanvasDimension(this.props.height)) + 'px',
+      cursor: this.props.dragging ? '-webkit-grabbing' : '-webkit-grab',
     };
 
     var imgStyle = {
@@ -72,11 +81,11 @@ var TileCanvas = React.createClass({
     var tileUrls = this.getTileUrls();
 
     var tileImages = _.map(tileUrls, function(tileUrl){
-      return <img key={String(tileUrl.x) + '-' + String(tileUrl.y)} src={tileUrl.url} style={imgStyle} />
+      return <img draggable="false" key={String(tileUrl.x) + '-' + String(tileUrl.y)} src={tileUrl.url} style={imgStyle} />
     })
 
     return (
-      <div className="canvas" style={canvasStyle}>
+      <div className="canvas" style={canvasStyle} onMouseDown={this.props.onMouseDown} onMouseUp={this.props.onMouseUp} onMouseMove={this.props.onMouseMove}>
         {tileImages}
       </div>
     );
@@ -99,6 +108,7 @@ var Map = React.createClass({
 
   getInitialState: function() {
     return {
+      dragging: false,
       center: this.props.center,
       zoom: this.props.zoom
     };
@@ -112,6 +122,48 @@ var Map = React.createClass({
     this.setState({zoom: this.state.zoom - 1});
   },
 
+  handleMouseDown: function(event) {
+    this.setState({
+      dragging: true,
+      prevX: event.clientX,
+      prevY: event.clientY
+    });
+  },
+
+  handleMouseUp: function(event) {
+    this.setState({
+      dragging: false,
+      prevX: null,
+      prevY: null
+    });
+  },
+
+  handleMouseMove: function(event) {
+    if (this.state.dragging) {
+      var nextX = event.clientX;
+      var nextY = event.clientY;
+      var prevX = this.state.prevX;
+      var prevY = this.state.prevY;
+
+      var dX = nextX - prevX;
+      var dY = nextY - prevY;
+
+      var currentCoords = this.getPixelCenter();
+      var newCoords = [currentCoords[0] + dY, currentCoords[1] + dX];
+      var newCenter = mercator.ll(newCoords, this.state.zoom);
+
+      this.setState({
+        center: {lat: newCenter[0], lng: newCenter[1]},
+        prevX: nextX,
+        prevY: nextY
+      });
+    }
+  },
+
+  getPixelCenter: function() {
+    return mercator.px([this.state.center.lat, this.state.center.lng], this.state.zoom);
+  },
+
   render: function() {
     var converter = Tolmey.create();
     var lat = this.state.center.lat;
@@ -119,8 +171,19 @@ var Map = React.createClass({
     var zoom = this.state.zoom;
     var coords = converter.getMercatorFromGPS(lat, long, zoom);
 
-    var divHeight = 1000;
-    var divWidth = 1000;
+    var tileBounds = mercator.bbox(coords.x, coords.y, zoom);
+
+    var NW = mercator.px([tileBounds[0], tileBounds[1]], zoom);
+    var SE = mercator.px([tileBounds[2], tileBounds[3]], zoom);
+
+    var tileCenter = [(NW[0] + SE[0]) / 2, (NW[1] + SE[1]) / 2];
+    var center = mercator.px([long, lat], zoom);
+
+    var offsetX = tileCenter[0] - center[0];
+    var offsetY = tileCenter[1] - center[1];
+
+    var divHeight = 500;
+    var divWidth = 500;
 
     var divStyle = {
       width: String(divWidth) + 'px',
@@ -128,14 +191,13 @@ var Map = React.createClass({
       overflow: 'hidden'
     };
 
-
     return (
       <div>
         <div className="controls">
           <ZoomControl zoom={this.state.zoom} max={this.props.maxZoom} min={this.props.minZoom} onZoomIn={this.handleZoomIn} onZoomOut={this.handleZoomOut} />
         </div>
         <div className="visor" style={divStyle}>
-          <TileCanvas width={divWidth} height={divHeight} coords={coords} zoom={zoom} />
+          <MapCanvas dragging={this.state.dragging} width={divWidth} height={divHeight} coords={coords} zoom={zoom} offsetX={offsetX} offsetY={offsetY} onMouseDown={this.handleMouseDown} onMouseUp={this.handleMouseUp} onMouseMove={this.handleMouseMove} />
         </div>
       </div>
     );

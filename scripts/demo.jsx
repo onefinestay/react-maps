@@ -4,8 +4,8 @@ var React = require('react');
 var ReactMaps = require('react-maps');
 
 var position = {
-  lat: 51.5623900,
-  lng: -0.1409180
+  lat: 51.5067021,
+  lng: -0.1735015
 };
 
 React.renderComponent(
