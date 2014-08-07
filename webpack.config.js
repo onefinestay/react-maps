@@ -2,9 +2,9 @@ var webpack = require("webpack");
 
 
 module.exports = {
-  entry: './lib/index.js',
+  entry: './demo/js/demo.js',
   output: {
-    filename: './build/bundle.js'
+    filename: './demo/js/build/bundle.js'
   },
   module: {
     loaders: [
@@ -16,8 +16,12 @@ module.exports = {
         'process.env.NODE_ENV': JSON.stringify('production')
     })
   ],
+
   resolve: {
     // you can now require('file') instead of require('file.coffee')
-    extensions: ['', '.js', '.json']
+    extensions: ['', '.js', '.json'],
+    alias: {
+      'react-maps': '../../lib/index'
+    }
   }
 };
