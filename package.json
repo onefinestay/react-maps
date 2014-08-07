@@ -1,0 +1,26 @@
+{
+  "name": "react-maps",
+  "version": "0.0.0",
+  "description": "react-maps ==========",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/onefinestay/react-maps.git"
+  },
+  "author": "",
+  "license": "Apache",
+  "bugs": {
+    "url": "https://github.com/onefinestay/react-maps/issues"
+  },
+  "homepage": "https://github.com/onefinestay/react-maps",
+  "dependencies": {
+    "react": "^0.11.1"
+  },
+  "devDependencies": {
+    "webpack": "^1.3.3-beta1",
+    "jsx-loader": "^0.11.0"
+  }
+}
