@@ -5,6 +5,7 @@ var SphericalMercator = require('sphericalmercator');
 
 var TILE_DIM = constants.TILE_DIM;
 
+var ImageLoader = require('react-imageloader');
 var React = require('react');
 var Tolmey = require('tolmey');
 var ZoomControl = require('./controls/ZoomControl');
@@ -12,6 +13,39 @@ var _ = require('underscore');
 
 var mercator = new SphericalMercator({
     size: TILE_DIM
+});
+
+
+var TilePlaceholder = React.createClass({
+  render: function() {
+    var style = {
+      display: 'inline-block',
+      'vertical-align': 'bottom',
+      'background-color': '#ccc',
+      width: String(constants.TILE_DIM) + 'px',
+      height: String(constants.TILE_DIM) + 'px'
+    };
+    return <div style={style} />;
+  },
+});
+
+var MissingTile = React.createClass({
+  render: function() {
+    var style = {
+      display: 'inline-block',
+      'vertical-align': 'bottom',
+      'background-color': '#ccc',
+      color: '#222',
+      'font-size': '12px',
+      width: String(constants.TILE_DIM) + 'px',
+      height: String(constants.TILE_DIM) + 'px'
+    };
+    return (
+      <div style={style}>
+        Tile couldn't be found at this zoom level;
+      </div>
+    );
+  },
 });
 
 
@@ -79,13 +113,32 @@ var MapCanvas = React.createClass({
     };
 
     var tileUrls = this.getTileUrls();
+    var zoom = this.props.zoom;
 
     var tileImages = _.map(tileUrls, function(tileUrl){
-      return <img draggable="false" key={String(tileUrl.x) + '-' + String(tileUrl.y)} src={tileUrl.url} style={imgStyle} />
+      var key = `${ zoom }-${ tileUrl.x}-${ tileUrl.y}`;
+
+      return (
+        <ImageLoader
+          key={key}
+          src={tileUrl.url}
+          draggable="false"
+          preloader={TilePlaceholder}
+          style={imgStyle}>
+          <MissingTile />
+        </ImageLoader>
+      );
     })
 
     return (
-      <div className="canvas" style={canvasStyle} onMouseDown={this.props.onMouseDown} onMouseUp={this.props.onMouseUp} onMouseMove={this.props.onMouseMove}>
+      <div
+        className="canvas"
+        style={canvasStyle}
+        onContextMenu={this.props.onContextMenu}
+        onMouseLeave={this.props.onMouseLeave}
+        onMouseDown={this.props.onMouseDown}
+        onMouseUp={this.props.onMouseUp}
+        onMouseMove={this.props.onMouseMove}>
         {tileImages}
       </div>
     );
@@ -120,6 +173,12 @@ var Map = React.createClass({
 
   handleZoomOut: function() {
     this.setState({zoom: this.state.zoom - 1});
+  },
+
+  handleMouseLeave: function(event) {
+    this.setState({
+      dragging: false
+    });
   },
 
   handleMouseDown: function(event) {
@@ -160,6 +219,10 @@ var Map = React.createClass({
     }
   },
 
+  handleContextMenu: function(event) {
+    event.preventDefault();
+  },
+
   getPixelCenter: function() {
     return mercator.px([this.state.center.lat, this.state.center.lng], this.state.zoom);
   },
@@ -182,8 +245,8 @@ var Map = React.createClass({
     var offsetX = tileCenter[0] - center[0];
     var offsetY = tileCenter[1] - center[1];
 
-    var divHeight = 500;
-    var divWidth = 500;
+    var divHeight = 1000;
+    var divWidth = 1000;
 
     var divStyle = {
       width: String(divWidth) + 'px',
@@ -194,10 +257,27 @@ var Map = React.createClass({
     return (
       <div>
         <div className="controls">
-          <ZoomControl zoom={this.state.zoom} max={this.props.maxZoom} min={this.props.minZoom} onZoomIn={this.handleZoomIn} onZoomOut={this.handleZoomOut} />
+          <ZoomControl
+            zoom={this.state.zoom}
+            max={this.props.maxZoom}
+            min={this.props.minZoom}
+            onZoomIn={this.handleZoomIn}
+            onZoomOut={this.handleZoomOut} />
         </div>
         <div className="visor" style={divStyle}>
-          <MapCanvas dragging={this.state.dragging} width={divWidth} height={divHeight} coords={coords} zoom={zoom} offsetX={offsetX} offsetY={offsetY} onMouseDown={this.handleMouseDown} onMouseUp={this.handleMouseUp} onMouseMove={this.handleMouseMove} />
+          <MapCanvas
+            dragging={this.state.dragging}
+            width={divWidth}
+            height={divHeight}
+            coords={coords}
+            zoom={zoom}
+            offsetX={offsetX}
+            offsetY={offsetY}
+            onContextMenu={this.handleContextMenu}
+            onMouseLeave={this.handleMouseLeave}
+            onMouseDown={this.handleMouseDown}
+            onMouseUp={this.handleMouseUp}
+            onMouseMove={this.handleMouseMove} />
         </div>
       </div>
     );
