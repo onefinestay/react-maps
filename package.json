@@ -25,6 +25,10 @@
     "webpack": "^1.3.3-beta1",
     "jsx-loader": "^0.11.0",
     "tolmey": "^0.6.1",
-    "underscore": "^1.6.0"
+    "underscore": "^1.6.0",
+    "webpack-dev-server": "^1.4.9",
+    "tolmey": "^0.6.1",
+    "connect": "^3.1.0",
+    "serve-static": "^1.5.0"
   }
 }
