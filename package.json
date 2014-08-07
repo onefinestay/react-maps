@@ -17,7 +17,8 @@
   },
   "homepage": "https://github.com/onefinestay/react-maps",
   "dependencies": {
-    "react": "^0.11.1"
+    "react": "^0.11.1",
+    "tolmey": "^0.6.1"
   },
   "devDependencies": {
     "webpack": "^1.3.3-beta1",
