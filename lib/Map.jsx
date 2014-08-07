@@ -23,8 +23,8 @@ var TileCanvas = React.createClass({
       }
   },
 
-  getCanvasDimension: function(lenght){
-    var dim = Math.ceil(lenght / constants.TILE_DIM);
+  getCanvasDimension: function(length){
+    var dim = Math.ceil(length / constants.TILE_DIM);
     return dim % 2 == 0 ? dim + 1 : dim;
   },
 
