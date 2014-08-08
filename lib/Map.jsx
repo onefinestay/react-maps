@@ -316,20 +316,21 @@ var Map = React.createClass({
 
     if (event.deltaY < 0 ){
       if (this.state.zoom < this.props.maxZoom){
-        this.setState({
-          zoom: this.state.zoom + 1,
-          center: {lat: newCenter[0], lng: newCenter[1]},
-        });
+        this.zoomTo(this.state.zoom + 1, {lat: newCenter[0], lng: newCenter[1]});
       }
     } else {
       if (this.state.zoom > this.props.minZoom){
-        this.setState({
-          zoom: this.state.zoom - 1,
-          center: {lat: newCenter[0], lng: newCenter[1]},
-        });
+        this.zoomTo(this.state.zoom - 1, {lat: newCenter[0], lng: newCenter[1]});
       }
     }
   },
+
+  zoomTo: _.throttle(function(zoom, center) {
+    this.setState({
+      zoom: zoom,
+      center: center
+    });
+  }, 500),
 
   getPixelCenter: function() {
     return mercator.px([this.state.center.lat, this.state.center.lng], this.state.zoom);
