@@ -100,8 +100,9 @@ var MapCanvas = React.createClass({
     var offsetY = offsets.top + this.props.offsetY;
 
     var canvasStyle = {
-      marginTop: offsetY + 'px',
-      marginLeft: offsetX + 'px',
+      position: 'relative',
+      top: offsetY + 'px',
+      left: offsetX + 'px',
       width: String(constants.TILE_DIM * this.getCanvasDimension(this.props.width)) + 'px',
       height: String(constants.TILE_DIM * this.getCanvasDimension(this.props.height)) + 'px',
       cursor: this.props.dragging ? '-webkit-grabbing' : '-webkit-grab',
@@ -128,18 +129,49 @@ var MapCanvas = React.createClass({
           <MissingTile />
         </ImageLoader>
       );
-    })
+    });
+
+    var center = this.props.center;
+    var centerPx = mercator.px([center.lat, center.lng], zoom);
+
+    console.log(centerPx);
+
+    var width = this.props.width;
+    var height = this.props.height;
+
+    var overlays = _.map(this.props.markers, function(marker) {
+      var pos = marker.props.position;
+      var px = mercator.px([pos.lat, pos.lng], zoom);
+
+      var dX = centerPx[1] - px[1];
+      var dY = centerPx[0] - px[0];
+      console.log(dX, dY);
+
+      var overlayStyle = {
+        position: 'absolute',
+        top: (height / 2) + dY + 'px',
+        left: (width / 2) - dX + 'px'
+      };
+
+      return (
+        <div className="overlay" style={overlayStyle}>
+          {marker}
+        </div>
+      );
+    });
 
     return (
       <div
         className="canvas"
         style={canvasStyle}
         onContextMenu={this.props.onContextMenu}
+        onDoubleClick={this.props.onDoubleClick}
         onMouseLeave={this.props.onMouseLeave}
         onMouseDown={this.props.onMouseDown}
         onMouseUp={this.props.onMouseUp}
         onMouseMove={this.props.onMouseMove}>
-        {tileImages}
+        <div className="tiles">{tileImages}</div>
+        <div className="overlays">{overlays}</div>
       </div>
     );
   }
@@ -341,9 +373,9 @@ var Map = React.createClass({
     var lat = this.state.center.lat;
     var long = this.state.center.lng;
     var zoom = this.state.zoom;
-    var coords = converter.getMercatorFromGPS(lat, long, zoom);
+    var centerTileCoords = converter.getMercatorFromGPS(lat, long, zoom);
 
-    var tileBounds = mercator.bbox(coords.x, coords.y, zoom);
+    var tileBounds = mercator.bbox(centerTileCoords.x, centerTileCoords.y, zoom);
 
     var NW = mercator.px([tileBounds[0], tileBounds[1]], zoom);
     var SE = mercator.px([tileBounds[2], tileBounds[3]], zoom);
@@ -354,8 +386,8 @@ var Map = React.createClass({
     var offsetX = tileCenter[0] - center[0];
     var offsetY = tileCenter[1] - center[1];
 
-    var divHeight = this.state.viewportHeight;
-    var divWidth = this.state.viewportWidth;
+    var divHeight = 500;
+    var divWidth = 500;
 
     var divStyle = {
       width: String(divWidth) + 'px',
@@ -375,14 +407,17 @@ var Map = React.createClass({
         </div>
         <div className="visor" style={divStyle} ref="viewport" onWheel={this.handleOnWheel}>
           <MapCanvas
+            markers={this.props.markers}
             dragging={this.state.dragging}
             width={divWidth}
             height={divHeight}
-            coords={coords}
+            center={this.state.center}
+            coords={centerTileCoords}
             zoom={zoom}
             offsetX={offsetX}
             offsetY={offsetY}
             onContextMenu={this.handleContextMenu}
+            onDoubleClick={this.handleDoubleClick}
             onMouseLeave={this.handleMouseLeave}
             onMouseDown={this.handleMouseDown}
             onMouseUp={this.handleMouseUp}
