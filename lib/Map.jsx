@@ -190,10 +190,78 @@ var Map = React.createClass({
   },
 
   handleMouseUp: function(event) {
+    if (this.state.dragging) {
+      var tick = new Date().getTime();
+      var nextX = event.clientX;
+      var nextY = event.clientY;
+      var prevX = this.state.prevX;
+      var prevY = this.state.prevY;
+
+      var dX = this.state.lastDX;
+      var dY = this.state.lastDY
+      var dT = tick - this.state.prevTick;
+
+      var vX = dX / dT;
+      var vY = dY / dT;
+
+      this.setState({
+        velocity: {x: vX||0, y:vY||0},
+        prevInertiaTick: new Date().getTime(),
+        inertiaTimer: setInterval(this.inertiaStep, 4),
+        dragging: false,
+        lastDX: null,
+        lastDY: null,
+        prevTick: null,
+        prevX: null,
+        prevY: null
+      });
+    }
+  },
+
+  inertiaStep: function() {
+    if (!this.state.velocity) {
+      this.inertiaStop();
+      return;
+    }
+
+    var vX = this.state.velocity.x;
+    var vY = this.state.velocity.y;
+    var time = new Date().getTime();
+
+    var isDone = (Math.abs(vX) + Math.abs(vY)) < 0.001;
+
+    if (isDone) {
+      this.inertiaStop();
+      return;
+    }
+
+    var multiplier = 1 - 0.2;
+
+    vX *= multiplier;
+    vY *= multiplier;
+
+    var interval = time - this.state.prevInertiaTick;
+
+    var dX = vX * interval;
+    var dY = vY * interval;
+
+    var currentCoords = this.getPixelCenter();
+    var newCoords = [currentCoords[0] + dY, currentCoords[1] + dX];
+    var newCenter = mercator.ll(newCoords, this.state.zoom);
+
     this.setState({
-      dragging: false,
-      prevX: null,
-      prevY: null
+      velocity: {x: vX, y: vY},
+      prevInertiaTick: time,
+      center: {lat: newCenter[0], lng: newCenter[1]}
+    });
+  },
+
+  inertiaStop: function() {
+    clearInterval(this.state.inertiaTimer);
+    this.setState({
+      velocity: null,
+      inertiaTimer: null,
+      prevInertiaTick: null
     });
   },
 
@@ -213,6 +281,9 @@ var Map = React.createClass({
 
       this.setState({
         center: {lat: newCenter[0], lng: newCenter[1]},
+        prevTick: new Date().getTime(),
+        lastDX: dX,
+        lastDY: dY,
         prevX: nextX,
         prevY: nextY
       });
