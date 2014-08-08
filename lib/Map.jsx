@@ -164,8 +164,8 @@ var Map = React.createClass({
       dragging: false,
       center: this.props.center,
       zoom: this.props.zoom,
-      viewportHeight: 1000,
-      viewportWidth: 1000
+      viewportHeight: 500,
+      viewportWidth: 500
     };
   },
 
@@ -306,16 +306,12 @@ var Map = React.createClass({
     var prevX = this.refs.viewport.getDOMNode().offsetLeft + Math.floor(this.state.viewportWidth / 2);
     var prevY = this.refs.viewport.getDOMNode().offsetTop + Math.floor(this.state.viewportHeight / 2);
 
-    var dX = nextX - prevX;
-    var dY = nextY - prevY;
-
-    console.log(dY, dX);
+    var dX = Math.floor((nextX - prevX) / 2);
+    var dY = Math.floor((nextY - prevY) / 2);
 
     var currentCoords = this.getPixelCenter();
-    console.log(currentCoords);
 
     var newCoords = [currentCoords[0] - dY, currentCoords[1] - dX];
-    console.log(newCoords);
     var newCenter = mercator.ll(newCoords, this.state.zoom);
 
     if (event.deltaY < 0 ){
