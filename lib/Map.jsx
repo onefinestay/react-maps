@@ -163,16 +163,22 @@ var Map = React.createClass({
     return {
       dragging: false,
       center: this.props.center,
-      zoom: this.props.zoom
+      zoom: this.props.zoom,
+      viewportHeight: 1000,
+      viewportWidth: 1000
     };
   },
 
   handleZoomIn: function() {
-    this.setState({zoom: this.state.zoom + 1});
+    if (this.state.zoom < this.props.maxZoom){
+      this.setState({zoom: this.state.zoom + 1});
+    }
   },
 
   handleZoomOut: function() {
-    this.setState({zoom: this.state.zoom - 1});
+    if (this.state.zoom > this.props.minZoom){
+      this.setState({zoom: this.state.zoom - 1});
+    }
   },
 
   handleMouseLeave: function(event) {
@@ -294,6 +300,41 @@ var Map = React.createClass({
     event.preventDefault();
   },
 
+  handleOnWheel: function(event){
+    var nextX = event.clientX;
+    var nextY = event.clientY;
+    var prevX = this.refs.viewport.getDOMNode().offsetLeft + Math.floor(this.state.viewportWidth / 2);
+    var prevY = this.refs.viewport.getDOMNode().offsetTop + Math.floor(this.state.viewportHeight / 2);
+
+    var dX = nextX - prevX;
+    var dY = nextY - prevY;
+
+    console.log(dY, dX);
+
+    var currentCoords = this.getPixelCenter();
+    console.log(currentCoords);
+
+    var newCoords = [currentCoords[0] - dY, currentCoords[1] - dX];
+    console.log(newCoords);
+    var newCenter = mercator.ll(newCoords, this.state.zoom);
+
+    if (event.deltaY < 0 ){
+      if (this.state.zoom < this.props.maxZoom){
+        this.setState({
+          zoom: this.state.zoom + 1,
+          center: {lat: newCenter[0], lng: newCenter[1]},
+        });
+      }
+    } else {
+      if (this.state.zoom > this.props.minZoom){
+        this.setState({
+          zoom: this.state.zoom - 1,
+          center: {lat: newCenter[0], lng: newCenter[1]},
+        });
+      }
+    }
+  },
+
   getPixelCenter: function() {
     return mercator.px([this.state.center.lat, this.state.center.lng], this.state.zoom);
   },
@@ -316,8 +357,8 @@ var Map = React.createClass({
     var offsetX = tileCenter[0] - center[0];
     var offsetY = tileCenter[1] - center[1];
 
-    var divHeight = 1000;
-    var divWidth = 1000;
+    var divHeight = this.state.viewportHeight;
+    var divWidth = this.state.viewportWidth;
 
     var divStyle = {
       width: String(divWidth) + 'px',
@@ -335,7 +376,7 @@ var Map = React.createClass({
             onZoomIn={this.handleZoomIn}
             onZoomOut={this.handleZoomOut} />
         </div>
-        <div className="visor" style={divStyle}>
+        <div className="visor" style={divStyle} ref="viewport" onWheel={this.handleOnWheel}>
           <MapCanvas
             dragging={this.state.dragging}
             width={divWidth}
